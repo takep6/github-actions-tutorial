@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>GitHub Actions 入門ガイド</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      {   }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+    code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+    code span.at { color: #7d9029; } /* Attribute */
+    code span.bn { color: #40a070; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #4070a0; } /* Char */
+    code span.cn { color: #880000; } /* Constant */
+    code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+    code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+    code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+    code span.dt { color: #902000; } /* DataType */
+    code span.dv { color: #40a070; } /* DecVal */
+    code span.er { color: #ff0000; font-weight: bold; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #40a070; } /* Float */
+    code span.fu { color: #06287e; } /* Function */
+    code span.im { } /* Import */
+    code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+    code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+    code span.op { color: #666666; } /* Operator */
+    code span.ot { color: #007020; } /* Other */
+    code span.pp { color: #bc7a00; } /* Preprocessor */
+    code span.sc { color: #4070a0; } /* SpecialChar */
+    code span.ss { color: #bb6688; } /* SpecialString */
+    code span.st { color: #4070a0; } /* String */
+    code span.va { color: #19177c; } /* Variable */
+    code span.vs { color: #4070a0; } /* VerbatimString */
+    code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+<body>
+<h1 id="github-actions-入門">GitHub Actions 入門</h1>
+<h2 id="github-actionsの動作の仕組み">1. GitHub Actionsの動作の仕組み</h2>
+<p>GitHub Actionsは、GitHubが提供する継続的インテグレーション（CI）および継続的デリバリー（CD）のための自動化プラットフォームです。リポジトリ内で発生する様々なイベント（コードのプッシュ、プルリクエストの作成、Issueのオープンなど）をトリガーとして、定義された一連の処理を自動的に実行することができます。</p>
+<p>GitHub Actionsの主要な構成要素は以下の通りです。</p>
+<ul>
+<li><strong>ワークフロー (Workflow)</strong>: 自動化される一連のプロセス全体を定義するものです。YAML形式のファイルで記述され、リポジトリの<code>.github/workflows</code>ディレクトリに配置されます。1つ以上のジョブで構成されます。</li>
+<li><strong>イベント (Event)</strong>: ワークフローを実行するきっかけとなるGitHub上の特定のアクティビティです。例えば、<code>push</code>（コードのプッシュ）、<code>pull_request</code>（プルリクエストの作成）、<code>schedule</code>（指定した時刻での実行）などがあります。</li>
+<li><strong>ジョブ (Job)</strong>: ワークフロー内で実行される一連のステップの集まりです。各ジョブは独立して実行され、デフォルトでは並行して実行されますが、依存関係を設定して順次実行することも可能です。各ジョブは特定のランナー上で実行されます。</li>
+<li><strong>ステップ (Step)</strong>: ジョブ内で実行される個々のアクションまたはコマンドです。例えば、リポジトリのチェックアウト、依存関係のインストール、テストの実行、アプリケーションのビルド、デプロイなどが1つのステップとして定義されます。</li>
+<li><strong>アクション (Action)</strong>: GitHub Actionsの最小単位であり、特定のタスクを実行するための再利用可能なコードです。GitHub Marketplaceで公開されている既存のアクションを利用したり、自分でカスタムアクションを作成したりすることができます。例えば、<code>actions/checkout@v3</code>はリポジトリをチェックアウトするアクションです。</li>
+<li><strong>ランナー (Runner)</strong>: ワークフローのジョブを実行するサーバー環境です。GitHubがホストする仮想環境（GitHub-hosted runner）と、ユーザーが自身で用意するセルフホストランナー（self-hosted runner）があります。GitHub-hosted runnerは、Ubuntu, Windows, macOSなどの環境を提供し、必要なツールがプリインストールされています。</li>
+</ul>
+<p>これらの要素が連携することで、開発者はコードの変更からテスト、デプロイまでの一連のプロセスを自動化し、開発効率を大幅に向上させることができます。</p>
+<h2 id="github-actionsが一般的に使われる用途">2. GitHub Actionsが一般的に使われる用途</h2>
+<p>GitHub Actionsは、ソフトウェア開発の様々な側面を自動化するために広く利用されています。主な用途は以下の通りです。</p>
+<ul>
+<li><strong>継続的インテグレーション (CI)</strong>:
+<ul>
+<li><strong>コードのビルド</strong>: リポジトリにプッシュされたコードを自動的にビルドし、実行可能な形式に変換します。</li>
+<li><strong>テストの実行</strong>: 単体テスト、結合テスト、E2Eテストなど、様々な種類のテストを自動的に実行し、コードの品質を保証します。</li>
+<li><strong>コード品質のチェック</strong>: リンターや静的解析ツールを実行し、コーディング規約の遵守や潜在的なバグを検出します。</li>
+<li><strong>依存関係の管理</strong>: プロジェクトの依存関係を自動的にインストールし、ビルド環境を準備します。</li>
+</ul></li>
+<li><strong>継続的デリバリー/デプロイメント (CD)</strong>:
+<ul>
+<li><strong>アプリケーションのデプロイ</strong>: ビルドされたアプリケーションを、ステージング環境や本番環境などのサーバーに自動的にデプロイします。</li>
+<li><strong>コンテナイメージのビルドとプッシュ</strong>: Dockerなどのコンテナイメージをビルドし、コンテナレジストリ（Docker Hub, GCR, ECRなど）にプッシュします。</li>
+<li><strong>リリース管理</strong>: 新しいバージョンのリリースを自動化し、リリースノートの生成やタグ付けを行います。</li>
+</ul></li>
+<li><strong>リポジトリ管理と自動化</strong>:
+<ul>
+<li><strong>Issue/Pull Requestの自動管理</strong>: 特定のキーワードを含むIssueやPull Requestに自動的にラベルを付けたり、コメントを追加したり、担当者を割り当てたりします。</li>
+<li><strong>依存関係の自動更新</strong>: <code>dependabot</code>などと連携し、プロジェクトの依存関係を自動的に最新の状態に保ちます。</li>
+<li><strong>定期的なタスクの実行</strong>: スケジュールされたイベント（例: 毎日深夜に実行）を利用して、定期的なデータバックアップ、レポート生成、クリーンアップスクリプトの実行などを行います。</li>
+</ul></li>
+<li><strong>その他</strong>:
+<ul>
+<li><strong>ドキュメントの自動生成と公開</strong>: コードからドキュメントを生成し、GitHub Pagesなどに自動的に公開します。</li>
+<li><strong>Webサイトの自動更新</strong>: 静的サイトジェネレーター（Jekyll, Hugoなど）で構築されたWebサイトを、コンテンツの変更をトリガーに自動的にビルド・デプロイします。</li>
+<li><strong>チャットツールへの通知</strong>: ビルドやデプロイの結果をSlackやTeamsなどのチャットツールに通知します。</li>
+</ul></li>
+</ul>
+<p>これらの用途は、開発プロセスを効率化し、手動での作業によるミスを減らし、チーム全体の生産性を向上させることに貢献します。</p>
+<h2 id="github-actionsのyamlファイルテンプレートと設定項目の解説">3. GitHub ActionsのYAMLファイルテンプレートと設定項目の解説</h2>
+<p>GitHub Actionsのワークフローは、YAML形式のファイルで定義されます。このファイルは、リポジトリのルートディレクトリに<code>.github/workflows/</code>というディレクトリを作成し、その中に配置します。ファイル名は任意ですが、<code>.yml</code>または<code>.yaml</code>の拡張子を使用します。</p>
+<p>以下に、基本的なワークフローファイルのテンプレートと、主要な設定項目の意味を解説します。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true"></a><span class="fu">name</span><span class="kw">:</span><span class="at"> My First Workflow</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true"></a><span class="fu">on</span><span class="kw">:</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true"></a><span class="at">  </span><span class="fu">push</span><span class="kw">:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true"></a><span class="at">    </span><span class="fu">branches</span><span class="kw">:</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> main</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true"></a><span class="at">  </span><span class="fu">pull_request</span><span class="kw">:</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true"></a><span class="at">    </span><span class="fu">branches</span><span class="kw">:</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> main</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true"></a><span class="at">  </span><span class="fu">workflow_dispatch</span><span class="kw">:</span><span class="co"> # 手動実行を可能にする</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true"></a><span class="fu">jobs</span><span class="kw">:</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true"></a><span class="at">  </span><span class="fu">build</span><span class="kw">:</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true"></a><span class="at">    </span><span class="fu">runs-on</span><span class="kw">:</span><span class="at"> ubuntu-latest</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true"></a><span class="at">    </span><span class="fu">steps</span><span class="kw">:</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Checkout repository</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true"></a><span class="at">        </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/checkout@v4</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Set up Node.js</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true"></a><span class="at">        </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/setup-node@v4</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true"></a><span class="at">        </span><span class="fu">with</span><span class="kw">:</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true"></a><span class="at">          </span><span class="fu">node-version</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;20&#39;</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Install dependencies</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true"></a><span class="at">        </span><span class="fu">run</span><span class="kw">:</span><span class="at"> npm install</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Run tests</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true"></a><span class="at">        </span><span class="fu">run</span><span class="kw">:</span><span class="at"> npm test</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true"></a></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true"></a><span class="at">  </span><span class="fu">deploy</span><span class="kw">:</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true"></a><span class="at">    </span><span class="fu">needs</span><span class="kw">:</span><span class="at"> build</span><span class="co"> # buildジョブが成功した場合にのみ実行</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true"></a><span class="at">    </span><span class="fu">runs-on</span><span class="kw">:</span><span class="at"> ubuntu-latest</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true"></a><span class="at">    </span><span class="fu">steps</span><span class="kw">:</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Checkout repository</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true"></a><span class="at">        </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/checkout@v4</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true"></a></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Deploy to production</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true"></a><span class="at">        </span><span class="fu">run</span><span class="kw">:</span><span class="at"> echo &quot;Deploying application...&quot;</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true"></a><span class="co">        # ここにデプロイコマンドを記述</span></span></code></pre></div>
+<h3 id="主要な設定項目">主要な設定項目</h3>
+<ul>
+<li><p><strong><code>name</code></strong>: (オプション) ワークフローの名前を定義します。GitHubのUI上で表示される名前になります。省略した場合、ファイル名が使用されます。</p></li>
+<li><p><strong><code>on</code></strong>: ワークフローが実行されるトリガーイベントを定義します。複数のイベントを指定できます。</p>
+<ul>
+<li><strong><code>push</code></strong>: 指定したブランチにコードがプッシュされたときにワークフローを実行します。
+<ul>
+<li><code>branches</code>: ワークフローを実行するブランチを指定します。例: <code>main</code>, <code>develop</code>。</li>
+</ul></li>
+<li><strong><code>pull_request</code></strong>: 指定したブランチに対してプルリクエストが作成または更新されたときにワークフローを実行します。
+<ul>
+<li><code>branches</code>: ワークフローを実行するブランチを指定します。</li>
+</ul></li>
+<li><strong><code>schedule</code></strong>: 特定のcron式に基づいて定期的にワークフローを実行します。例: <code>cron: '0 0 * * *'</code>（毎日午前0時）。</li>
+<li><strong><code>workflow_dispatch</code></strong>: GitHubのUIから手動でワークフローを実行できるようにします。テストやデプロイなど、手動でのトリガーが必要な場合に便利です。</li>
+<li>他にも、<code>issue_comment</code>, <code>release</code>, <code>repository_dispatch</code>など、様々なイベントをトリガーにできます。</li>
+</ul></li>
+<li><p><strong><code>jobs</code></strong>: ワークフロー内で実行される1つ以上のジョブを定義します。各ジョブはユニークなID（例: <code>build</code>, <code>deploy</code>）を持ちます。</p>
+<ul>
+<li><strong><code>&lt;job_id&gt;</code></strong>: 各ジョブのIDです。
+<ul>
+<li><strong><code>runs-on</code></strong>: ジョブを実行するランナーのOS環境を指定します。<code>ubuntu-latest</code>, <code>windows-latest</code>, <code>macos-latest</code>などが利用可能です。セルフホストランナーを使用する場合は、そのラベルを指定します。</li>
+<li><strong><code>steps</code></strong>: ジョブ内で実行される一連のステップを定義します。ステップは上から順に実行されます。
+<ul>
+<li><strong><code>name</code></strong>: (オプション) ステップの名前を定義します。ログに表示され、デバッグに役立ちます。</li>
+<li><strong><code>uses</code></strong>: 既存のアクションを使用する場合に指定します。<code>actions/checkout@v4</code>のように、<code>所有者/リポジトリ名@バージョン</code>の形式で指定します。GitHub Marketplaceで公開されている多くのアクションを利用できます。</li>
+<li><strong><code>run</code></strong>: シェルコマンドを実行する場合に指定します。指定されたコマンドは、<code>runs-on</code>で指定されたランナー環境のシェル（UbuntuではBash、WindowsではPowerShellなど）で実行されます。</li>
+<li><strong><code>with</code></strong>: アクションやコマンドに渡す入力パラメータを定義します。キーと値のペアで指定します。</li>
+<li><strong><code>env</code></strong>: ステップまたはジョブ全体で利用可能な環境変数を定義します。</li>
+<li><strong><code>if</code></strong>: 特定の条件が満たされた場合にのみステップを実行するための条件式を定義します。例: <code>if: success()</code>（前のステップが成功した場合）。</li>
+</ul></li>
+<li><strong><code>needs</code></strong>: 現在のジョブが実行される前に、完了しておく必要がある他のジョブを指定します。これにより、ジョブ間の依存関係を定義し、実行順序を制御できます。</li>
+<li><strong><code>outputs</code></strong>: ジョブの出力を定義し、後続のジョブでその値を利用できるようにします。</li>
+<li><strong><code>strategy</code></strong>: マトリックス戦略など、複数の設定でジョブを並行して実行するための戦略を定義します。</li>
+</ul></li>
+</ul></li>
+</ul>
+<p>これらの設定項目を組み合わせることで、複雑な自動化ワークフローを柔軟に構築することができます。</p>
+<h2 id="具体的なcicd環境の作成方法-ステップバイステップ">4. 具体的なCI/CD環境の作成方法 (ステップバイステップ)</h2>
+<p>ここでは、簡単なNode.jsアプリケーションを例に、GitHub Actionsを使ってCI/CD環境を構築する手順をステップバイステップで説明します。</p>
+<h3 id="前提条件">前提条件</h3>
+<ul>
+<li>GitHubアカウントを持っていること。</li>
+<li>GitHubリポジトリを作成済みであること。</li>
+<li>簡単なNode.jsアプリケーション（<code>package.json</code>とテストファイルを含む）がリポジトリに存在すること。</li>
+</ul>
+<h3 id="ステップ1-リポジトリの準備">ステップ1: リポジトリの準備</h3>
+<p>まず、GitHubリポジトリに簡単なNode.jsアプリケーションを用意します。例えば、以下のようなファイル構成と内容を持つプロジェクトを作成します。</p>
+<p><strong><code>package.json</code></strong></p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;my-node-app&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="st">&quot;1.0.0&quot;</span><span class="fu">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true"></a>  <span class="dt">&quot;description&quot;</span><span class="fu">:</span> <span class="st">&quot;A simple Node.js application&quot;</span><span class="fu">,</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true"></a>  <span class="dt">&quot;main&quot;</span><span class="fu">:</span> <span class="st">&quot;index.js&quot;</span><span class="fu">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true"></a>  <span class="dt">&quot;scripts&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true"></a>    <span class="dt">&quot;test&quot;</span><span class="fu">:</span> <span class="st">&quot;echo </span><span class="ch">\&quot;</span><span class="st">No tests specified</span><span class="ch">\&quot;</span><span class="st"> &amp;&amp; exit 0&quot;</span><span class="fu">,</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true"></a>    <span class="dt">&quot;start&quot;</span><span class="fu">:</span> <span class="st">&quot;node index.js&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true"></a>  <span class="fu">},</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true"></a>  <span class="dt">&quot;author&quot;</span><span class="fu">:</span> <span class="st">&quot;Your Name&quot;</span><span class="fu">,</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true"></a>  <span class="dt">&quot;license&quot;</span><span class="fu">:</span> <span class="st">&quot;ISC&quot;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong><code>index.js</code></strong></p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true"></a><span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(<span class="st">&quot;Hello from my Node.js app!&quot;</span>)<span class="op">;</span></span></code></pre></div>
+<p><strong><code>test.js</code> (オプション、テストを追加する場合)</strong></p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true"></a><span class="co">// 例: 簡単なテストフレームワーク (Mocha, Jestなど) を使用しない場合</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true"></a><span class="kw">const</span> assert <span class="op">=</span> <span class="pp">require</span>(<span class="st">&#39;assert&#39;</span>)<span class="op">;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true"></a><span class="kw">function</span> <span class="fu">add</span>(a<span class="op">,</span> b) {</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true"></a>  <span class="cf">return</span> a <span class="op">+</span> b<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true"></a>}</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true"></a>assert<span class="op">.</span><span class="fu">strictEqual</span>(<span class="fu">add</span>(<span class="dv">1</span><span class="op">,</span> <span class="dv">2</span>)<span class="op">,</span> <span class="dv">3</span><span class="op">,</span> <span class="st">&#39;add(1, 2) should be 3&#39;</span>)<span class="op">;</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true"></a>assert<span class="op">.</span><span class="fu">strictEqual</span>(<span class="fu">add</span>(<span class="dv">5</span><span class="op">,</span> <span class="dv">5</span>)<span class="op">,</span> <span class="dv">10</span><span class="op">,</span> <span class="st">&#39;add(5, 5) should be 10&#39;</span>)<span class="op">;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true"></a><span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(<span class="st">&#39;All tests passed!&#39;</span>)<span class="op">;</span></span></code></pre></div>
+<p>これらのファイルをリポジトリにプッシュしておきます。</p>
+<h3 id="ステップ2-ワークフローファイルの作成">ステップ2: ワークフローファイルの作成</h3>
+<p>リポジトリのルートに<code>.github/workflows/</code>ディレクトリを作成し、その中に<code>ci-cd.yml</code>という名前のファイルを作成します。</p>
+<p><strong><code>.github/workflows/ci-cd.yml</code></strong></p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true"></a><span class="fu">name</span><span class="kw">:</span><span class="at"> Node.js CI/CD</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true"></a><span class="fu">on</span><span class="kw">:</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true"></a><span class="at">  </span><span class="fu">push</span><span class="kw">:</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true"></a><span class="at">    </span><span class="fu">branches</span><span class="kw">:</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> main</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true"></a><span class="at">  </span><span class="fu">pull_request</span><span class="kw">:</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true"></a><span class="at">    </span><span class="fu">branches</span><span class="kw">:</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> main</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true"></a></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true"></a><span class="fu">jobs</span><span class="kw">:</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true"></a><span class="at">  </span><span class="fu">build-and-test</span><span class="kw">:</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true"></a><span class="at">    </span><span class="fu">runs-on</span><span class="kw">:</span><span class="at"> ubuntu-latest</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true"></a><span class="at">    </span><span class="fu">steps</span><span class="kw">:</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Checkout repository</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true"></a><span class="at">        </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/checkout@v4</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Set up Node.js</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true"></a><span class="at">        </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/setup-node@v4</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true"></a><span class="at">        </span><span class="fu">with</span><span class="kw">:</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true"></a><span class="at">          </span><span class="fu">node-version</span><span class="kw">:</span><span class="at"> </span><span class="st">&#39;20&#39;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Install dependencies</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true"></a><span class="at">        </span><span class="fu">run</span><span class="kw">:</span><span class="at"> npm install</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true"></a></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Run tests</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true"></a><span class="at">        </span><span class="fu">run</span><span class="kw">:</span><span class="at"> npm test</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true"></a></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true"></a><span class="at">  </span><span class="fu">deploy</span><span class="kw">:</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true"></a><span class="at">    </span><span class="fu">needs</span><span class="kw">:</span><span class="at"> build-and-test</span><span class="co"> # build-and-testジョブが成功した場合にのみ実行</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true"></a><span class="at">    </span><span class="fu">runs-on</span><span class="kw">:</span><span class="at"> ubuntu-latest</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true"></a><span class="at">    </span><span class="fu">environment</span><span class="kw">:</span><span class="at"> production</span><span class="co"> # デプロイ環境を指定 (オプション)</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true"></a></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true"></a><span class="at">    </span><span class="fu">steps</span><span class="kw">:</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Checkout repository</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true"></a><span class="at">        </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> actions/checkout@v4</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true"></a></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true"></a><span class="at">      </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Deploy to a server</span><span class="co"> # 例: SSHでサーバーにデプロイ</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true"></a><span class="fu">        run</span><span class="kw">: </span><span class="ch">|</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true"></a>          echo &quot;Deploying application to production server...&quot;</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true"></a>          # ここに実際のデプロイコマンドを記述します。</span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true"></a>          # 例: scp -r ./* user@your-server.com:/var/www/html/</span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true"></a>          # 例: rsync -avz --delete ./* user@your-server.com:/var/www/html/</span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true"></a>          # 例: AWS S3, Heroku, Vercelなどへのデプロイコマンド</span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true"></a>          echo &quot;Deployment complete!&quot;</span></code></pre></div>
+<h3 id="ステップ3-ワークフローの解説">ステップ3: ワークフローの解説</h3>
+<p>上記の<code>ci-cd.yml</code>ファイルは、以下の2つのジョブで構成されています。</p>
+<ol type="1">
+<li><strong><code>build-and-test</code> ジョブ (CI)</strong>:
+<ul>
+<li><code>on: push</code> と <code>on: pull_request</code> により、<code>main</code>ブランチへのプッシュまたはプルリクエスト時に自動的に実行されます。</li>
+<li><code>runs-on: ubuntu-latest</code> で、最新のUbuntu環境で実行されます。</li>
+<li><code>actions/checkout@v4</code> でリポジトリのコードをランナーにチェックアウトします。</li>
+<li><code>actions/setup-node@v4</code> でNode.jsのバージョン20をセットアップします。</li>
+<li><code>npm install</code> でプロジェクトの依存関係をインストールします。</li>
+<li><code>npm test</code> でテストを実行します。テストが失敗すると、このジョブは失敗し、デプロイジョブは実行されません。</li>
+</ul></li>
+<li><strong><code>deploy</code> ジョブ (CD)</strong>:
+<ul>
+<li><code>needs: build-and-test</code> により、<code>build-and-test</code>ジョブが成功した場合にのみ実行されます。</li>
+<li><code>runs-on: ubuntu-latest</code> で、最新のUbuntu環境で実行されます。</li>
+<li><code>environment: production</code> は、デプロイ先の環境を示すもので、GitHubの環境保護ルール（手動承認など）を設定できます。</li>
+<li><code>actions/checkout@v4</code> で再度リポジトリのコードをチェックアウトします。</li>
+<li><code>Deploy to a server</code> ステップでは、実際のデプロイコマンドを記述します。これは環境によって大きく異なります。例えば、SSHでサーバーにファイルを転送したり、クラウドプロバイダーのCLIツールを使ってデプロイしたりします。</li>
+</ul></li>
+</ol>
+<h3 id="ステップ4-ワークフローの実行と確認">ステップ4: ワークフローの実行と確認</h3>
+<ol type="1">
+<li><strong>ワークフローファイルをプッシュ</strong>: 作成した<code>ci-cd.yml</code>ファイルをリポジトリにプッシュします。 <code>bash     git add .github/workflows/ci-cd.yml     git commit -m "Add GitHub Actions CI/CD workflow"     git push origin main</code></li>
+<li><strong>GitHub Actionsの確認</strong>: GitHubリポジトリの「Actions」タブに移動します。プッシュをトリガーとして、<code>Node.js CI/CD</code>ワークフローが自動的に実行されていることが確認できます。</li>
+<li><strong>実行結果の確認</strong>: ワークフローの実行をクリックすると、各ジョブ（<code>build-and-test</code>と<code>deploy</code>）の実行状況と、各ステップのログが表示されます。成功していれば緑色のチェックマーク、失敗していれば赤色のXマークが表示されます。</li>
+</ol>
+<p>この簡単なCI/CDパイプラインを基盤として、さらに複雑なテストの追加、複数の環境へのデプロイ、通知機能の組み込みなど、要件に応じて拡張していくことができます。</p>
+<h2 id="その他の活用方法-hack的な使い方-と使用上の注意点">5. その他の活用方法 (HACK的な使い方) と使用上の注意点</h2>
+<p>GitHub Actionsは非常に柔軟なツールであり、CI/CD以外にも様々な「HACK的」な使い方が可能です。しかし、その自由度ゆえに注意すべき点も存在します。</p>
+<h3 id="hack的な使い方">HACK的な使い方</h3>
+<ul>
+<li><strong>定期的なレポート生成</strong>: <code>schedule</code>イベントを利用して、毎日、毎週、毎月などの間隔でスクリプトを実行し、プロジェクトの統計情報、Issueのサマリー、テストカバレッジレポートなどを自動生成し、GitHub PagesやIssueのコメントとして公開する。</li>
+<li><strong>Webサイトの自動更新</strong>: 静的サイトジェネレーター（Jekyll, Hugo, Next.jsなど）で構築されたブログやドキュメントサイトのコンテンツを更新するたびに、自動的にビルドしてGitHub PagesやS3、Vercelなどにデプロイする。</li>
+<li><strong>Issue/Pull Requestの自動管理</strong>: 特定のキーワードを含むIssueに自動でラベルを付与したり、一定期間更新がないIssueをクローズしたり、初めてのコントリビューターに歓迎のコメントを自動で送るなど、リポジトリの運用を自動化する。</li>
+<li><strong>依存関係の自動更新</strong>: Dependabotと連携し、プロジェクトの依存関係（ライブラリ、フレームワークなど）にセキュリティ脆弱性が見つかった場合や新しいバージョンがリリースされた場合に、自動的にPull Requestを作成して更新を促す。</li>
+<li><strong>コードの自動整形/Lint</strong>: コードがプッシュされた際に、PrettierやESLintなどのツールを使ってコードを自動整形したり、LintエラーをチェックしてPull Requestにコメントとしてフィードバックしたりする。</li>
+<li><strong>翻訳の自動化</strong>: 多言語対応のプロジェクトで、新しいコンテンツが追加された際に、翻訳APIを呼び出して自動的に翻訳を行い、翻訳ファイルをコミットする。</li>
+<li><strong>SNSへの自動投稿</strong>: 新しいブログ記事が公開された際や、プロジェクトの新しいリリースがあった際に、自動的にX (旧Twitter) やSlackなどのSNSに投稿する。</li>
+</ul>
+<h3 id="使用上の注意点とベストプラクティス">使用上の注意点とベストプラクティス</h3>
+<p>GitHub Actionsを効果的かつ安全に利用するためには、以下の点に注意が必要です。</p>
+<ol type="1">
+<li><p><strong>シークレットの管理</strong>: APIキー、パスワード、トークンなどの機密情報は、ワークフローファイルに直接記述せず、GitHubの「Secrets」機能を利用して安全に管理します。これにより、機密情報が公開リポジトリに誤ってコミットされることを防ぎます。</p>
+<ul>
+<li><code>Settings</code> -&gt; <code>Secrets and variables</code> -&gt; <code>Actions</code> から設定できます。</li>
+<li>ワークフロー内では<code>${{ secrets.MY_SECRET_NAME }}</code>のように参照します。</li>
+</ul></li>
+<li><p><strong>最小権限の原則</strong>: ワークフローやアクションに与える権限は、そのタスクを完了するために必要な最小限のものに限定します。特に、リポジトリへの書き込み権限や、外部サービスへのアクセス権限は慎重に設定します。</p></li>
+<li><p><strong>バージョン固定</strong>: <code>uses: actions/checkout@v4</code>のように、アクションのバージョンを固定することをお勧めします。<code>@main</code>や<code>@latest</code>を使用すると、アクションの変更によってワークフローが予期せず動作しなくなる可能性があります。</p></li>
+<li><p><strong>キャッシュの活用</strong>: ビルドやテストの際に繰り返しダウンロードされる依存関係（例: <code>node_modules</code>, <code>pip cache</code>）は、<code>actions/cache</code>アクションを使ってキャッシュすることで、ワークフローの実行時間を大幅に短縮できます。</p></li>
+<li><p><strong>テストとデバッグ</strong>: ワークフローは、小さな変更から段階的にテストし、期待通りに動作することを確認します。GitHub ActionsのUIで提供されるログは詳細であり、デバッグに非常に役立ちます。また、<code>act</code>などのツールを使ってローカルでワークフローをテストすることも可能です。</p></li>
+<li><p><strong>並行実行と依存関係</strong>: 複数のジョブが並行して実行されることを理解し、ジョブ間の依存関係（<code>needs</code>キーワード）を適切に設定することで、意図しない実行順序や競合を防ぎます。</p></li>
+<li><p><strong>ワークフローの可読性</strong>: <code>name</code>フィールドを適切に設定し、ステップごとに分かりやすい名前を付けることで、ワークフローの目的と処理内容を把握しやすくします。コメントを活用することも有効です。</p></li>
+<li><p><strong>コスト管理</strong>: GitHub-hosted runnerは無料枠がありますが、それを超えると課金が発生します。大規模なプロジェクトや頻繁な実行が必要な場合は、利用状況を監視し、セルフホストランナーの導入やワークフローの最適化を検討します。</p></li>
+<li><p><strong>エラーハンドリング</strong>: <code>if</code>条件や<code>continue-on-error</code>などの設定を適切に利用し、一部のステップが失敗してもワークフロー全体が停止しないようにしたり、特定のエラー時にのみ処理を実行したりするなど、堅牢なワークフローを構築します。</p></li>
+</ol>
+<p>これらの活用方法と注意点を理解することで、GitHub Actionsをより強力な開発ツールとして使いこなすことができるでしょう。</p>
+<h2 id="まとめとさらなる学習">6. まとめとさらなる学習</h2>
+<p>このドキュメントでは、GitHub Actionsの基本的な仕組みから、一般的な用途、ワークフローファイルの書き方、簡単なCI/CD環境の構築方法、さらには応用的な使い方や注意点までを解説しました。</p>
+<p>GitHub Actionsは、開発プロセスを自動化し、チームの生産性を向上させるための強力なツールです。最初はYAMLの構文や概念に戸惑うかもしれませんが、実際に手を動かしてワークフローを作成し、試行錯誤を繰り返すことで、その強力な機能を理解し、使いこなせるようになるでしょう。</p>
+<h3 id="さらなる学習のために">さらなる学習のために</h3>
+<ul>
+<li><strong>公式ドキュメント</strong>: GitHub Actionsの公式ドキュメントは、最も正確で最新の情報源です。詳細な構文や様々なアクションについて学ぶことができます。
+<ul>
+<li><a href="https://docs.github.com/ja/actions">GitHub Actions ドキュメント</a></li>
+</ul></li>
+<li><strong>GitHub Marketplace</strong>: 多数の既存アクションが公開されており、様々なタスクを簡単に自動化できます。自分のニーズに合ったアクションを探してみましょう。
+<ul>
+<li><a href="https://github.com/marketplace?type=actions">GitHub Marketplace</a></li>
+</ul></li>
+<li><strong>コミュニティとブログ</strong>: Qiita, Zenn, Mediumなどの技術ブログや、GitHubコミュニティでは、多くの開発者がGitHub Actionsの活用事例やノウハウを共有しています。他の人のワークフローを参考にすることも良い学習方法です。</li>
+</ul>
+<p>GitHub Actionsをマスターして、より効率的で楽しい開発ライフを送りましょう！</p>
+<hr />
+</body>
+</html>
