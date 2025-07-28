@@ -1,0 +1,56 @@
+name: Discord Notification
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send Discord notification on push
+        if: github.event_name == 'push'
+        uses: appleboy/discord-action@v1.2.0
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          message: |
+            🚀 新しいコミットがプッシュされました！
+            リポジトリ: ${{ github.repository }}
+            コミットメッセージ: ${{ github.event.head_commit.message }}
+            コミットURL: ${{ github.event.head_commit.url }}
+            by: ${{ github.actor }}
+          username: GitHub Actions Bot
+          color: "#00FF00" # 緑色
+
+      - name: Send Discord notification on pull request merged
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: appleboy/discord-action@v1.2.0
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }} # Webhook URL全体を一つのSecretとして保存している場合
+          message: |
+            🎉 プルリクエストがマージされました！
+            タイトル: **${{ github.event.pull_request.title }}**
+            URL: ${{ github.event.pull_request.html_url }}
+            by: ${{ github.actor }}
+          username: GitHub Actions Bot
+          color: "#0000FF" # 青色
+
+      - name: Send Manual Discord notification
+        if: github.event_name == 'workflow_dispatch'
+        uses: appleboy/discord-action@v1.2.0
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          message: |
+            手動でワークフローが実行されました！
+            実行者: ${{ github.actor }}
+          username: Manual Trigger Bot
+          color: "#FFA500" # オレンジ色
